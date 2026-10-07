@@ -26,6 +26,12 @@ joblib>=1.4,<2.0
 # Notebook data display + evaluation report tables
 pandas>=2.2,<4.0
 
+# --- Phase 4: entity extraction ---
+# Statistical NER (pipeline: tokenizer/POS/NER); the model is downloaded
+# separately via `python -m spacy download en_core_web_sm` — without it the
+# entity extractor degrades to the built-in rule-based fallback
+spacy>=3.8,<4.0
+
 # --- Test-only ---
 pytest>=8.0
 # httpx2 is the maintained successor of httpx; starlette's TestClient

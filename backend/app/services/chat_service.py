@@ -1,15 +1,16 @@
 """Chat orchestration — the brain of the API layer.
 
-Pipeline (Phase 3):
+Pipeline (Phase 4):
 
     ChatRequest
       -> preprocessing            (Phase 2)
       -> intent classification     (Phase 3)  -> label + confidence
+      -> entity extraction         (Phase 4)  -> PERSON/LOCATION/DATE/TIME/NUMBER
       -> rule-based reply          (deterministic templates / real time)
       -> ChatResponse
 
 Extension points already reserved:
-    Phase 4 inserts entity extraction after intent
+    Phase 5 adds an embedding-based intent path alongside TF-IDF
     Phase 7 answers document intents via RAG
     Phase 8 swaps reply generation for an LLM (intent still drives routing)
     Phase 9 adds tool decisions (calculator, time, weather, ...)
@@ -21,9 +22,10 @@ import logging
 from datetime import datetime
 from time import perf_counter
 
+from app.nlp.entities import EntitySpan, get_entity_extractor
 from app.nlp.intent import IntentResult, classify_intent, load_dataset
 from app.nlp.preprocessing import PreprocessConfig, PreprocessResult, preprocess
-from app.schemas import ChatRequest, ChatResponse, ProcessingInfo
+from app.schemas import ChatRequest, ChatResponse, Entity, ProcessingInfo
 
 logger = logging.getLogger(__name__)
 
@@ -33,20 +35,23 @@ class ChatService:
 
     def __init__(self, config: PreprocessConfig | None = None) -> None:
         self.config = config or PreprocessConfig()
+        self.extractor = get_entity_extractor()
 
     def handle(self, request: ChatRequest) -> ChatResponse:
         """Run the pipeline and build the API response."""
         started = perf_counter()
         processed = preprocess(request.message, self.config)
         intent_result = classify_intent(request.message)
+        entity_spans = self.extractor.extract(request.message)
         elapsed_ms = (perf_counter() - started) * 1000
 
         logger.info(
-            "intent=%s conf=%.2f (%s) | %d tokens | %.1f ms",
+            "intent=%s conf=%.2f (%s) | %d tokens | %d entities | %.1f ms",
             intent_result.label,
             intent_result.confidence,
             intent_result.method,
             len(processed.tokens),
+            len(entity_spans),
             elapsed_ms,
         )
 
@@ -54,7 +59,7 @@ class ChatService:
             response=self._generate_reply(processed, intent_result),
             intent=intent_result.label,
             confidence=round(intent_result.confidence, 4),
-            entities=[],  # Phase 4 fills this
+            entities=[_to_schema_entity(span) for span in entity_spans],
             processing=ProcessingInfo(
                 tokens=processed.tokens,
                 normalized_text=processed.normalized_text,
@@ -90,6 +95,17 @@ def _time_reply() -> str:
     return (
         f"It's {now.strftime('%H:%M')} on {now.strftime('%A, %B %d, %Y')} "
         f"(timezone {now.strftime('%Z')})."
+    )
+
+
+def _to_schema_entity(span: EntitySpan) -> Entity:
+    """Map the NLP-layer span onto the stable API contract."""
+    return Entity(
+        text=span.text,
+        label=span.label,
+        start=span.start,
+        end=span.end,
+        confidence=round(span.confidence, 4),
     )
 
 

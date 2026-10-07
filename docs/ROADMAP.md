@@ -65,11 +65,17 @@ confidence populated in `/api/chat` responses; 70 tests passing.
 ## Phase 4 — Entity extraction
 *V3*
 
-- [ ] Rule-based NER: PERSON, LOCATION, DATE, TIME, NUMBER (regex + gazetteers)
-- [ ] `EntityExtractor` abstraction → spaCy NER drops in unchanged
-- [ ] Entities returned in `ChatResponse.entities`
-- [ ] Docs: NER, BIO tagging, sequence labeling; rule-based vs statistical
-- [ ] Notebook: `05_ner.ipynb`
+- [x] Rule-based NER: PERSON, LOCATION, DATE, TIME, NUMBER (regex + gazetteers)
+- [x] `EntityExtractor` abstraction → spaCy NER drops in unchanged
+      (plus a hybrid: precise TIME/DATE rules first, spaCy context for the rest)
+- [x] Entities returned in `ChatResponse.entities` (offsets into original text)
+- [x] Docs: NER, BIO tagging, sequence labeling; rule-based vs statistical
+      (`docs/nlp/04_entity_extraction.md`)
+- [x] Notebook: `04_ner.ipynb`
+
+**Exit criteria met:** all five labels extracted with valid non-overlapping
+offsets; factory degrades to rules when the spaCy model is missing; 88 tests
+passing.
 
 ## Phase 5 — Semantic search (embeddings)
 *V4*
@@ -79,7 +85,7 @@ confidence populated in `/api/chat` responses; 70 tests passing.
       ("I forgot my password" ≈ "I can't remember my login password")
 - [ ] Intent detection gains an embedding-based path alongside TF-IDF
 - [ ] Docs: word/sentence embeddings, vector space, cosine similarity vs TF-IDF
-- [ ] Notebook: `04_embeddings.ipynb`
+- [ ] Notebook: `05_embeddings.ipynb`
 
 ## Phase 6 — Conversation memory
 *V5 support layer*
