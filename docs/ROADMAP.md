@@ -45,15 +45,22 @@ tested; pipeline integrated into `/api/chat` without changing the contract.
 ## Phase 3 — Intent classification
 *V2 + V3*
 
-- [ ] Intent dataset in `data/intents/` (greeting, goodbye, thanks, help,
-      identity, capabilities, weather, time, small_talk, unknown)
-- [ ] **First:** TF-IDF + cosine similarity (understand the math)
-- [ ] **Then:** scikit-learn classifier (Multinomial NB / Linear SVM / Logistic)
-- [ ] Evaluation: accuracy, precision, recall, F1, confusion matrix; compare both
-- [ ] `nlp/train_intent_model.py` — trains once, **saves artifacts** (never
+- [x] Intent dataset in `data/intents/` (12 intents incl. greeting, goodbye,
+      thanks, help, identity, capabilities, weather, time, small_talk,
+      password_help, document_question, unknown — 489 patterns, v1.3)
+- [x] **First:** TF-IDF + cosine similarity (understand the math)
+- [x] **Then:** scikit-learn classifier (Multinomial NB / Linear SVM / Logistic)
+- [x] Evaluation: accuracy, precision, recall, F1, confusion matrix; compare both
+      (stratified 5-fold CV; Linear SVM calibrated selected — macro F1 0.757 ± 0.027)
+- [x] `nlp/train_intent_model.py` — trains once, **saves artifacts** (never
       retrain on server start)
-- [ ] Docs: TF-IDF equation, cosine similarity, classification metrics
-- [ ] Notebooks: `02_tf_idf.ipynb`, `03_intent_classification.ipynb`
+- [x] Docs: TF-IDF equation, cosine similarity, classification metrics
+      (`docs/nlp/03_classification.md`, `docs/reports/intent_model.md`)
+- [x] Notebooks: `02_tf_idf.ipynb`, `03_intent_classification.ipynb`
+
+**Exit criteria met:** artifact-trained classifier behind a stable
+`classify_intent()` API with baseline/keyword/unknown fallbacks; intent and
+confidence populated in `/api/chat` responses; 70 tests passing.
 
 ## Phase 4 — Entity extraction
 *V3*

@@ -16,8 +16,12 @@ venv/
 htmlcov/
 
 # --- Models / artifacts (large, retrain instead of committing) ---
-backend/artifacts/
+# Exception: the small Phase 3 intent artifacts are committed so a fresh
+# clone works without retraining.
+backend/artifacts/*
+!backend/artifacts/intent/
 *.joblib
+!backend/artifacts/intent/*.joblib
 *.pkl
 *.pt
 *.bin
@@ -26,8 +30,10 @@ backend/artifacts/
 # --- Data (user uploads stay local) ---
 data/documents/*
 !data/documents/.gitkeep
+# The intent dataset is hand-written source code — it must be committed.
 data/intents/*
 !data/intents/.gitkeep
+!data/intents/intents.json
 
 # --- Node / frontend ---
 node_modules/

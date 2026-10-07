@@ -16,6 +16,16 @@ pydantic-settings>=2.6,<3.0
 # (corpora are fetched separately via `python -m app.nlp.nltk_data`)
 nltk>=3.9,<4.0
 
+# --- Phase 3: intent classification ---
+# Dense arrays under every model/TF-IDF operation (direct import in nlp code)
+numpy>=1.26,<3.0
+# TF-IDF vectorization + LogisticRegression / Naive Bayes / LinearSVM classifiers
+scikit-learn>=1.5,<2.0
+# Persisting/loading the trained vectorizer + model (direct import, not via sklearn)
+joblib>=1.4,<2.0
+# Notebook data display + evaluation report tables
+pandas>=2.2,<4.0
+
 # --- Test-only ---
 pytest>=8.0
 # httpx2 is the maintained successor of httpx; starlette's TestClient

@@ -1,33 +1,35 @@
 """Chat orchestration — the brain of the API layer.
 
-Flow (Phase 2):
+Pipeline (Phase 3):
 
-    ChatRequest -> preprocessing -> rule-based reply -> ChatResponse
+    ChatRequest
+      -> preprocessing            (Phase 2)
+      -> intent classification     (Phase 3)  -> label + confidence
+      -> rule-based reply          (deterministic templates / real time)
+      -> ChatResponse
 
-Each arrow is a future extension point:
-    Phase 3 inserts intent classification after preprocessing
-    Phase 4 inserts entity extraction
-    Phase 5 inserts embedding-based retrieval
-    Phase 8 swaps the reply generator for an LLM behind LLMProvider
-
-The route stays a one-liner forever; all evolution happens here.
+Extension points already reserved:
+    Phase 4 inserts entity extraction after intent
+    Phase 7 answers document intents via RAG
+    Phase 8 swaps reply generation for an LLM (intent still drives routing)
+    Phase 9 adds tool decisions (calculator, time, weather, ...)
 """
 
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from time import perf_counter
 
+from app.nlp.intent import IntentResult, classify_intent, load_dataset
 from app.nlp.preprocessing import PreprocessConfig, PreprocessResult, preprocess
 from app.schemas import ChatRequest, ChatResponse, ProcessingInfo
 
 logger = logging.getLogger(__name__)
 
-MAX_TOKEN_PREVIEW = 10
-
 
 class ChatService:
-    """Stateless chat pipeline (state arrives with memory in Phase 6)."""
+    """Stateless chat pipeline (persistent memory arrives in Phase 6)."""
 
     def __init__(self, config: PreprocessConfig | None = None) -> None:
         self.config = config or PreprocessConfig()
@@ -35,50 +37,60 @@ class ChatService:
     def handle(self, request: ChatRequest) -> ChatResponse:
         """Run the pipeline and build the API response."""
         started = perf_counter()
-        result = preprocess(request.message, self.config)
+        processed = preprocess(request.message, self.config)
+        intent_result = classify_intent(request.message)
         elapsed_ms = (perf_counter() - started) * 1000
 
         logger.info(
-            "preprocessed %d chars -> %d tokens in %.1f ms",
-            len(request.message),
-            len(result.tokens),
+            "intent=%s conf=%.2f (%s) | %d tokens | %.1f ms",
+            intent_result.label,
+            intent_result.confidence,
+            intent_result.method,
+            len(processed.tokens),
             elapsed_ms,
         )
-        logger.debug("normalized=%r tokens=%s", result.normalized_text, result.tokens)
 
         return ChatResponse(
-            response=self._generate_reply(result),
-            intent="unknown",  # Phase 3 replaces this with real classification
-            confidence=0.0,
-            entities=[],
+            response=self._generate_reply(processed, intent_result),
+            intent=intent_result.label,
+            confidence=round(intent_result.confidence, 4),
+            entities=[],  # Phase 4 fills this
             processing=ProcessingInfo(
-                tokens=result.tokens,
-                normalized_text=result.normalized_text,
-                sentences=result.sentences,
+                tokens=processed.tokens,
+                normalized_text=processed.normalized_text,
+                sentences=processed.sentences,
             ),
             session_id=request.session_id,
         )
 
-    def _generate_reply(self, result: PreprocessResult) -> str:
-        """Phase 2 reply generator: an honest diagnostic (no intent yet).
+    # --- response generation (deterministic; LLM takes over in Phase 8) ------
 
-        This is deliberately rule-based — response *content* gets intelligent
-        in Phase 3 (templates per intent) and Phase 8 (LLM)."""
-        if not result.tokens:
+    def _generate_reply(self, processed: PreprocessResult, intent: IntentResult) -> str:
+        if intent.label == "time":
+            return _time_reply()
+
+        responses = load_dataset().responses_for(intent.label)
+        if not responses:
             return (
-                "I normalized your message but found no content tokens "
-                "(only stopwords/punctuation/URLs were left). "
-                "Intent classification arrives in Phase 3."
+                "I'm not sure how to respond to that yet."
+                if intent.label == "unknown"
+                else "OK."
             )
 
-        preview = ", ".join(result.tokens[:MAX_TOKEN_PREVIEW])
-        if len(result.tokens) > MAX_TOKEN_PREVIEW:
-            preview += ", …"
-        count = len(result.tokens)
-        return (
-            f"Preprocessed your message into {count} token{'s' if count != 1 else ''}: "
-            f"{preview}. Intent classification arrives in Phase 3."
-        )
+        # Deterministic template choice: stable across retries, varied by input.
+        reply = responses[len(processed.original_text) % len(responses)]
+        if intent.label == "unknown":
+            return f"{reply} (intent confidence: {intent.confidence:.2f})"
+        return reply
+
+
+def _time_reply() -> str:
+    """Deterministic, always-correct answer — no LLM needed (routing principle)."""
+    now = datetime.now().astimezone()
+    return (
+        f"It's {now.strftime('%H:%M')} on {now.strftime('%A, %B %d, %Y')} "
+        f"(timezone {now.strftime('%Z')})."
+    )
 
 
 # Module-level singleton: the service holds config, not request state.

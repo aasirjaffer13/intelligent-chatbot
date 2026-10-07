@@ -7,7 +7,7 @@ all the way to autonomous agents — **without hiding the NLP behind an LLM API*
 > Every component starts as a simple implementation you can read and understand,
 > then gets replaced by a more advanced model behind the *same interface*.
 
-**Current status: Phase 2 — NLP Preprocessing Pipeline** (Phase 1 foundation complete)
+**Current status: Phase 3 — Intent Classification** (Phases 1-2 complete)
 
 ---
 
@@ -178,8 +178,8 @@ instead of changing the schema.
 | --- | --- | --- |
 | **1** | Project foundation: FastAPI + React, health check, contracts | ✅ Done |
 | **2** | NLP preprocessing pipeline (tokenize, normalize, stem, lemmatize) | ✅ Done |
-| 3 | Intent classification: TF-IDF → classical ML, evaluation metrics | ⬜ Next |
-| 4 | Entity extraction: rules → spaCy NER behind one abstraction | ⬜ |
+| **3** | Intent classification: TF-IDF → classical ML, evaluation metrics | ✅ Done |
+| 4 | Entity extraction: rules → spaCy NER behind one abstraction | ⬜ Next |
 | 5 | Semantic search with sentence embeddings | ⬜ |
 | 6 | Conversation memory (sessions in PostgreSQL) | ⬜ |
 | 7 | RAG: upload documents, grounded answers with citations | ⬜ |
