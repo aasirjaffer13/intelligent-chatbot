@@ -1,0 +1,49 @@
+# --- Secrets / env ---
+.env
+.env.local
+*.env.local
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Models / artifacts (large, retrain instead of committing) ---
+backend/artifacts/
+*.joblib
+*.pkl
+*.pt
+*.bin
+*.onnx
+
+# --- Data (user uploads stay local) ---
+data/documents/*
+!data/documents/.gitkeep
+data/intents/*
+!data/intents/.gitkeep
+
+# --- Node / frontend ---
+node_modules/
+dist/
+.vite/
+*.local
+
+# --- Notebooks ---
+.ipynb_checkpoints/
+
+# --- IDE / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Logs ---
+*.log
+logs/

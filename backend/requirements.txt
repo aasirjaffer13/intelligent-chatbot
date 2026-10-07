@@ -1,0 +1,23 @@
+# ============================================================
+# NOVA backend — Phase 1 dependencies
+# Each dependency is here for a stated reason (see README).
+# ============================================================
+
+# Web framework: async HTTP API, dependency injection, OpenAPI docs at /docs
+fastapi>=0.115,<1.0
+# ASGI server that runs the FastAPI app (standard extras add --reload, websockets)
+uvicorn[standard]>=0.30,<1.0
+# Data validation / settings; FastAPI's schema layer is built on it
+pydantic>=2.9,<3.0
+# Typed .env loading for pydantic settings (pulls python-dotenv transitively)
+pydantic-settings>=2.6,<3.0
+
+# NLP toolkit: tokenizers, stopwords, Porter stemmer, WordNet lemmatizer
+# (corpora are fetched separately via `python -m app.nlp.nltk_data`)
+nltk>=3.9,<4.0
+
+# --- Test-only ---
+pytest>=8.0
+# httpx2 is the maintained successor of httpx; starlette's TestClient
+# (fastapi.testclient) uses it and warns on plain httpx
+httpx2>=2.10
