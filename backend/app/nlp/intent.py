@@ -1,6 +1,6 @@
 """Intent classification.
 
-Three implementations behind one function (``classify_intent``), following the
+Implementations behind one function (``classify_intent``), following the
 project's swap-in rule — simple first, advanced later:
 
 1. ``TfidfCosineClassifier``  — baseline: TF-IDF over training patterns,
@@ -10,11 +10,16 @@ project's swap-in rule — simple first, advanced later:
    in ``train_intent_model.py``). Requires ``python -m app.nlp.train_intent_model``.
 3. ``KeywordFallbackClassifier`` — last-resort heuristics so the API never
    crashes when artifacts are missing (fresh clone before training).
+4. ``EmbeddingIntentClassifier`` — nearest-pattern in sentence-embedding
+   space (Phase 5). Handles paraphrases TF-IDF cannot ("I can't get into my
+   account" with zero shared keywords). Opt-in via ``NOVA_INTENT_BACKEND``
+   or ``classify_intent(..., backend="embedding")``; the default "auto"
+   chain stays sklearn-first because it is 100x cheaper per request.
 
-Anything below UNKNOWN_THRESHOLD becomes the ``unknown`` intent — the
-low-confidence fallback required by the spec.
+Anything below the backend's unknown threshold becomes the ``unknown``
+intent — the low-confidence fallback required by the spec.
 
-Docs: docs/nlp/03_classification.md
+Docs: docs/nlp/03_classification.md, docs/nlp/05_embeddings.md
 """
 
 from __future__ import annotations
@@ -39,6 +44,9 @@ ARTIFACT_DIR = BACKEND_DIR / "artifacts" / "intent"
 
 UNKNOWN = "unknown"
 DEFAULT_UNKNOWN_THRESHOLD = 0.35
+# Embedding cosines cluster lower than TF-IDF scores: paraphrases land ~0.5-0.8,
+# unrelated text ~0.0-0.3. Measured on this dataset (see 05_embeddings.md).
+EMBEDDING_UNKNOWN_THRESHOLD = 0.45
 
 
 class IntentResult(BaseModel):
@@ -46,7 +54,7 @@ class IntentResult(BaseModel):
 
     label: str = Field(description="Intent tag, or 'unknown'.")
     confidence: float = Field(ge=0.0, le=1.0)
-    method: str = Field(description="tfidf | sklearn | keyword_fallback")
+    method: str = Field(description="tfidf | sklearn | keyword_fallback | embedding")
 
 
 class IntentDataset:
@@ -221,6 +229,64 @@ class KeywordFallbackClassifier:
         return IntentResult(label=best_label, confidence=confidence, method="keyword_fallback")
 
 
+# --- implementation 4: sentence-embedding nearest-neighbor (Phase 5) ---------
+
+
+class EmbeddingIntentClassifier:
+    """Nearest-pattern classification in sentence-embedding space.
+
+    Fit: embed every training pattern once (unit vectors).
+    Predict: embed the query, dot-product cosine against all patterns,
+    aggregate the best score per intent (same rule as the TF-IDF baseline).
+    Cosine can be negative for unrelated text -> clipped to [0, 1] for the
+    confidence contract.
+    """
+
+    def __init__(self, patterns: list[str], labels: list[str], embedder=None) -> None:
+        if embedder is None:
+            from app.services.embedding_service import get_embedding_service
+
+            embedder = get_embedding_service()  # raises if model unavailable
+        self.embedder = embedder
+        self.pattern_matrix = embedder.encode(patterns)
+        self.labels = np.asarray(labels)
+
+    def predict(self, text: str) -> IntentResult:
+        query = self.embedder.encode([text])[0]
+        sims = np.asarray(self.pattern_matrix @ query, dtype=np.float64)
+        best_per_label: dict[str, float] = {}
+        for label, score in zip(self.labels, sims):
+            if score > best_per_label.get(label, -1.0):
+                best_per_label[label] = float(score)
+        label, confidence = max(best_per_label.items(), key=lambda kv: kv[1])
+        confidence = float(min(max(confidence, 0.0), 1.0))
+        if confidence < EMBEDDING_UNKNOWN_THRESHOLD:
+            return IntentResult(label=UNKNOWN, confidence=confidence, method="embedding")
+        return IntentResult(label=label, confidence=confidence, method="embedding")
+
+
+@lru_cache(maxsize=1)
+def get_embedding_intent_classifier() -> EmbeddingIntentClassifier | None:
+    """Build (once) the embedding classifier over the full dataset.
+
+    Returns None when the embedding model is unavailable — callers fall
+    back to the auto chain instead of failing.
+    """
+    try:
+        dataset = load_dataset()
+        patterns: list[str] = []
+        labels: list[str] = []
+        for intent in dataset.intents:
+            patterns.extend(intent["patterns"])
+            labels.extend([intent["tag"]] * len(intent["patterns"]))
+        classifier = EmbeddingIntentClassifier(patterns, labels)
+        logger.info("embedding intent classifier ready (%d patterns)", len(patterns))
+        return classifier
+    except Exception:
+        logger.warning("embedding intent classifier unavailable", exc_info=True)
+        return None
+
+
 # --- public API --------------------------------------------------------------
 
 
@@ -255,12 +321,36 @@ def get_intent_classifier():
     return TfidfCosineClassifier(patterns, labels)
 
 
-def classify_intent(text: str) -> IntentResult:
-    """Classify one message. Empty/whitespace input short-circuits to unknown."""
+def classify_intent(text: str, backend: str | None = None) -> IntentResult:
+    """Classify one message. Empty/whitespace input short-circuits to unknown.
+
+    ``backend`` overrides the configured ``NOVA_INTENT_BACKEND`` for this
+    call: ``auto`` (default chain), ``embedding``, ``keyword``, ``sklearn``.
+    Unknown/unavailable backends degrade to ``auto`` — never raise.
+    """
     if not text or not text.strip():
         return IntentResult(label=UNKNOWN, confidence=0.0, method="empty")
+
+    if backend is None:
+        from app.config import get_settings
+
+        backend = get_settings().intent_backend
+    backend = (backend or "auto").lower()
+    message = text.strip()
+
     try:
-        return get_intent_classifier().predict(text.strip())
+        if backend == "embedding":
+            classifier = get_embedding_intent_classifier()
+            if classifier is not None:
+                return classifier.predict(message)
+            logger.warning("embedding backend unavailable — using auto chain")
+        elif backend == "keyword":
+            return KeywordFallbackClassifier().predict(message)
+        elif backend == "sklearn":
+            return get_intent_classifier().predict(message)
+        elif backend != "auto":
+            logger.warning("unknown intent backend %r — using auto chain", backend)
+        return get_intent_classifier().predict(message)
     except Exception:
         logger.exception("intent classification failed — returning unknown")
         return IntentResult(label=UNKNOWN, confidence=0.0, method="error")

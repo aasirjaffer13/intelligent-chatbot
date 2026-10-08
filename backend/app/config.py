@@ -32,11 +32,24 @@ class Settings(BaseSettings):
         description="Comma-separated allowed browser origins.",
     )
     log_level: str = Field(default="INFO")
+    intent_backend: str = Field(
+        default="auto",
+        description="Intent classifier backend: auto | sklearn | embedding | keyword.",
+    )
 
     @field_validator("log_level")
     @classmethod
     def _upper_log_level(cls, value: str) -> str:
         return value.upper()
+
+    @field_validator("intent_backend")
+    @classmethod
+    def _lower_intent_backend(cls, value: str) -> str:
+        allowed = {"auto", "sklearn", "embedding", "keyword"}
+        lowered = value.lower()
+        if lowered not in allowed:
+            raise ValueError(f"intent_backend must be one of {sorted(allowed)}")
+        return lowered
 
     @property
     def cors_origin_list(self) -> list[str]:

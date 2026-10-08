@@ -32,6 +32,11 @@ pandas>=2.2,<4.0
 # entity extractor degrades to the built-in rule-based fallback
 spacy>=3.8,<4.0
 
+# --- Phase 5: sentence embeddings (semantic search / RAG) ---
+# all-MiniLM-L6-v2 (~80 MB) downloads to the HF cache on first encode;
+# if unavailable, callers degrade to the TF-IDF chain
+sentence-transformers>=3.0,<7.0
+
 # --- Test-only ---
 pytest>=8.0
 # httpx2 is the maintained successor of httpx; starlette's TestClient

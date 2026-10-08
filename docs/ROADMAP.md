@@ -80,12 +80,19 @@ passing.
 ## Phase 5 — Semantic search (embeddings)
 *V4*
 
-- [ ] `services/embedding_service.py` + `services/similarity_service.py`
-- [ ] sentence-transformers; demonstrate paraphrase matching
-      ("I forgot my password" ≈ "I can't remember my login password")
-- [ ] Intent detection gains an embedding-based path alongside TF-IDF
-- [ ] Docs: word/sentence embeddings, vector space, cosine similarity vs TF-IDF
-- [ ] Notebook: `05_embeddings.ipynb`
+- [x] `services/embedding_service.py` + `services/similarity_service.py`
+- [x] sentence-transformers; demonstrate paraphrase matching
+      ("I forgot my password" ≈ "I can't remember my login password", 0.788)
+- [x] Intent detection gains an embedding-based path alongside TF-IDF
+      (`EmbeddingIntentClassifier`, opt-in via `NOVA_INTENT_BACKEND` /
+      `classify_intent(backend="embedding")`)
+- [x] Docs: word/sentence embeddings, vector space, cosine similarity vs TF-IDF
+      (`docs/nlp/05_embeddings.md`)
+- [x] Notebook: `05_embeddings.ipynb`
+
+**Exit criteria met:** paraphrase ranks 0.788 vs unrelated 0.001; embedding
+backend classifies all spec examples correctly with unknown fallback; 115
+tests passing.
 
 ## Phase 6 — Conversation memory
 *V5 support layer*

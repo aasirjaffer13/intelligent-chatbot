@@ -7,7 +7,7 @@ all the way to autonomous agents — **without hiding the NLP behind an LLM API*
 > Every component starts as a simple implementation you can read and understand,
 > then gets replaced by a more advanced model behind the *same interface*.
 
-**Current status: Phase 4 — Entity Extraction** (Phases 1-3 complete)
+**Current status: Phase 5 — Semantic Search** (Phases 1-4 complete)
 
 ---
 
@@ -180,8 +180,8 @@ instead of changing the schema.
 | **2** | NLP preprocessing pipeline (tokenize, normalize, stem, lemmatize) | ✅ Done |
 | **3** | Intent classification: TF-IDF → classical ML, evaluation metrics | ✅ Done |
 | **4** | Entity extraction: rules → spaCy NER behind one abstraction | ✅ Done |
-| 5 | Semantic search with sentence embeddings | ⬜ Next |
-| 6 | Conversation memory (sessions in PostgreSQL) | ⬜ |
+| **5** | Semantic search with sentence embeddings | ✅ Done |
+| 6 | Conversation memory (sessions in PostgreSQL) | ⬜ Next |
 | 7 | RAG: upload documents, grounded answers with citations | ⬜ |
 | 8 | LLM integration via `LLMProvider` abstraction | ⬜ |
 | 9 | Tool calling + agent architecture | ⬜ |
