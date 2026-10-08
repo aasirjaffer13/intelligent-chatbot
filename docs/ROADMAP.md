@@ -97,11 +97,17 @@ tests passing.
 ## Phase 6 — Conversation memory
 *V5 support layer*
 
-- [ ] PostgreSQL + SQLAlchemy: `Conversation`, `Message` (timestamps, session id)
-- [ ] Session-scoped recent-context window injected into responses
-- [ ] "My name is Aasir" → later "What is my name?" works **from real stored
-      history** (no hardcoding)
-- [ ] Memory abstraction so the store can be swapped (in-memory → Postgres)
+- [x] PostgreSQL + SQLAlchemy: `Conversation`, `Message` (timestamps, session id)
+      (SQL store on portable SQLAlchemy; in-memory fallback + SQLite-tested)
+- [x] Session-scoped recent-context window injected into responses
+      (`NOVA_MEMORY_WINDOW`, default 12 messages)
+- [x] "My name is Aasir" → later "What is my name?" works **from real stored
+      history** (no hardcoding — proven with Zephyr/Echo/River in tests)
+- [x] Memory abstraction so the store can be swapped (in-memory → Postgres)
+      (`MemoryStore` ABC; `get_memory_store()` picks from `NOVA_DATABASE_URL`)
+
+**Exit criteria met:** 137 tests passing; name recall + session isolation +
+auto session creation verified end-to-end through the API.
 
 ## Phase 7 — RAG
 *V5–V6*

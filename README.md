@@ -7,7 +7,7 @@ all the way to autonomous agents — **without hiding the NLP behind an LLM API*
 > Every component starts as a simple implementation you can read and understand,
 > then gets replaced by a more advanced model behind the *same interface*.
 
-**Current status: Phase 5 — Semantic Search** (Phases 1-4 complete)
+**Current status: Phase 6 — Conversation Memory** (Phases 1-5 complete)
 
 ---
 
@@ -120,12 +120,12 @@ cd ..\backend
 
 ---
 
-## API endpoints (Phase 1)
+## API endpoints
 
 | Method | Path | Description |
 | --- | --- | --- |
 | `GET` | `/api/health` | Liveness probe — `{"status":"healthy","service":"nova"}` |
-| `POST` | `/api/chat` | Send a message (Phase 1: validated stub; NLP from Phase 2) |
+| `POST` | `/api/chat` | Send a message (memory + preprocess + intent + entities) |
 | `GET` | `/` | Service info |
 | `GET` | `/docs` | Swagger UI |
 
@@ -139,22 +139,23 @@ curl -X POST http://localhost:8000/api/chat `
 
 ```json
 {
-  "response": "Preprocessed your message into 4 tokens: cats, sleeping, visit, info.",
-  "intent": "unknown",
-  "confidence": 0.0,
+  "response": "Greetings! I'm up and running. What would you like to do?",
+  "intent": "greeting",
+  "confidence": 0.7782,
   "entities": [],
   "processing": {
-    "tokens": ["cats", "sleeping", "visit", "info"],
-    "normalized_text": "the cats are sleeping! visit for more info.",
-    "sentences": ["the cats are sleeping!", "visit for more info."]
+    "tokens": ["hello"],
+    "normalized_text": "hello, how are you?",
+    "sentences": ["hello, how are you?"]
   },
-  "session_id": null
+  "session_id": "7f943691f0754c9ab3b58c0a35fb2c54"
 }
 ```
 
-The **response shape is the full Phase 2+ contract** and will stay stable —
-future phases fill `intent`, `entities` and `processing` with real NLP output
-instead of changing the schema.
+The **response shape is the full Phase 1+ contract** and stays stable —
+later phases fill `intent`, `entities` and `processing` with real NLP output
+instead of changing the schema. Pass the returned `session_id` back on later
+requests to continue the same conversation (memory: `docs/memory.md`).
 
 ---
 
@@ -181,8 +182,8 @@ instead of changing the schema.
 | **3** | Intent classification: TF-IDF → classical ML, evaluation metrics | ✅ Done |
 | **4** | Entity extraction: rules → spaCy NER behind one abstraction | ✅ Done |
 | **5** | Semantic search with sentence embeddings | ✅ Done |
-| 6 | Conversation memory (sessions in PostgreSQL) | ⬜ Next |
-| 7 | RAG: upload documents, grounded answers with citations | ⬜ |
+| **6** | Conversation memory (sessions in PostgreSQL) | ✅ Done |
+| 7 | RAG: upload documents, grounded answers with citations | ⬜ Next |
 | 8 | LLM integration via `LLMProvider` abstraction | ⬜ |
 | 9 | Tool calling + agent architecture | ⬜ |
 | 10 | Production-grade frontend polish (streaming, markdown, themes) | ⬜ |

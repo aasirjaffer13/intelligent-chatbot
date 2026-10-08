@@ -46,6 +46,7 @@ export function useChat() {
   const clearChat = useCallback(() => {
     setMessages([])
     setError(null)
+    sessionIdRef.current = null // new conversation, not a wipe of the old one
   }, [])
 
   const dismissError = useCallback(() => setError(null), [])

@@ -37,6 +37,14 @@ spacy>=3.8,<4.0
 # if unavailable, callers degrade to the TF-IDF chain
 sentence-transformers>=3.0,<7.0
 
+# --- Phase 6: conversation memory ---
+# ORM + engine for Conversation/Message tables; the store falls back to
+# in-memory when NOVA_DATABASE_URL is unset or unreachable
+sqlalchemy>=2.0,<3.0
+# PostgreSQL driver for SQLAlchemy (`postgresql+psycopg://` URLs);
+# psycopg is also used directly by Phase 7's pgvector queries
+psycopg[binary]>=3.2,<4.0
+
 # --- Test-only ---
 pytest>=8.0
 # httpx2 is the maintained successor of httpx; starlette's TestClient

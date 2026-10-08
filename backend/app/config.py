@@ -36,6 +36,19 @@ class Settings(BaseSettings):
         default="auto",
         description="Intent classifier backend: auto | sklearn | embedding | keyword.",
     )
+    database_url: str = Field(
+        default="",
+        description=(
+            "SQLAlchemy URL for conversation memory. Empty = in-memory store. "
+            "Production: postgresql+psycopg://user:pass@host:5432/dbname"
+        ),
+    )
+    memory_window: int = Field(
+        default=12,
+        ge=0,
+        le=100,
+        description="How many recent messages form the session context window.",
+    )
 
     @field_validator("log_level")
     @classmethod
