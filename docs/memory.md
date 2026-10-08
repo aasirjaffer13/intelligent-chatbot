@@ -52,6 +52,24 @@ Schema is created with `create_all` on first use — honest for this dev-scale
 project; a production deployment would manage the identical tables with
 Alembic migrations.
 
+### Local PostgreSQL setup (this machine)
+
+```sql
+-- as superuser
+CREATE ROLE nova LOGIN;
+CREATE DATABASE nova OWNER nova;
+```
+
+```ini
+# backend/.env (gitignored)
+NOVA_DATABASE_URL=postgresql+psycopg://nova@localhost:5432/nova
+```
+
+Localhost uses `trust` auth in `pg_hba.conf` on the dev machine (backup kept
+as `pg_hba.conf.bak-nova`); with password auth, embed the password in the
+URL or use `.pgpass`. Without any URL the app silently uses the in-memory
+store — nothing breaks.
+
 ## 4. The request lifecycle
 
 ```
