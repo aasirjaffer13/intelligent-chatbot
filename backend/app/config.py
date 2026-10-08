@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import Field, field_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +20,7 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         env_prefix="NOVA_",
         extra="ignore",
+        populate_by_name=True,
     )
 
     env: str = Field(default="development")
@@ -70,6 +71,40 @@ class Settings(BaseSettings):
         description="Where uploaded files are stored. Empty = nova/data/documents.",
     )
 
+    # --- Phase 8: LLM reply generation ---
+    llm_provider: str = Field(
+        default="auto",
+        description=(
+            "LLM provider: auto (key-aware) | openai | huggingface | local | "
+            "mock | none (templates only)."
+        ),
+    )
+    llm_model: str = Field(
+        default="",
+        description="Model name override; empty = provider default.",
+    )
+    llm_max_tokens: int = Field(
+        default=256, ge=16, le=4096, description="Max tokens per completion."
+    )
+    llm_temperature: float = Field(
+        default=0.2, ge=0.0, le=2.0, description="Sampling temperature (0 = deterministic)."
+    )
+    llm_timeout: float = Field(
+        default=30.0, gt=0.0, le=300.0, description="Provider HTTP timeout in seconds."
+    )
+    # Secrets: standard env names first, NOVA_-prefixed alternates second.
+    # Never defaulted in .env.example, never logged, never repr'd.
+    openai_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("OPENAI_API_KEY", "NOVA_OPENAI_API_KEY"),
+    )
+    hf_token: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "HF_TOKEN", "HUGGINGFACEHUB_API_TOKEN", "NOVA_HF_TOKEN"
+        ),
+    )
+
     @field_validator("log_level")
     @classmethod
     def _upper_log_level(cls, value: str) -> str:
@@ -82,6 +117,15 @@ class Settings(BaseSettings):
         lowered = value.lower()
         if lowered not in allowed:
             raise ValueError(f"intent_backend must be one of {sorted(allowed)}")
+        return lowered
+
+    @field_validator("llm_provider")
+    @classmethod
+    def _lower_llm_provider(cls, value: str) -> str:
+        allowed = {"auto", "openai", "huggingface", "local", "mock", "none"}
+        lowered = value.lower()
+        if lowered not in allowed:
+            raise ValueError(f"llm_provider must be one of {sorted(allowed)}")
         return lowered
 
     @property

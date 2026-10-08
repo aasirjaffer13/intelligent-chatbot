@@ -49,15 +49,22 @@ def client(tmp_path) -> TestClient:
     app.dependency_overrides[get_document_service] = lambda: doc_service
 
     # The chat route uses the module singleton — point it at this test's
-    # stores too, and restore afterwards.
+    # stores too, and pin the LLM off (template determinism even if the
+    # machine running the suite has API keys in its environment).
     previous_rag = chat_module.chat_service._rag_store
     previous_memory = chat_module.chat_service.memory
+    previous_llm = chat_module.chat_service._llm
+    previous_llm_resolved = chat_module.chat_service._llm_resolved
     chat_module.chat_service._rag_store = rag_store
     chat_module.chat_service.memory = InMemoryStore()
+    chat_module.chat_service._llm = None
+    chat_module.chat_service._llm_resolved = True
 
     with TestClient(app) as test_client:
         yield test_client
 
     chat_module.chat_service._rag_store = previous_rag
     chat_module.chat_service.memory = previous_memory
+    chat_module.chat_service._llm = previous_llm
+    chat_module.chat_service._llm_resolved = previous_llm_resolved
     app.dependency_overrides.clear()

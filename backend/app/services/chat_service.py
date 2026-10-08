@@ -1,19 +1,19 @@
 """Chat orchestration — the brain of the API layer.
 
-Pipeline (Phase 6):
+Pipeline (Phase 8):
 
     ChatRequest
       -> memory: resolve session, load context window   (Phase 6)
       -> preprocessing                                  (Phase 2)
       -> intent classification                           (Phase 3)
       -> entity extraction                               (Phase 4)
-      -> reply: memory-aware + deterministic templates
+      -> reply: RAG for document questions (Phase 7),
+                LLM phrasing over pipeline outputs (Phase 8),
+                deterministic cases + template fallback
       -> persist both turns to memory                    (Phase 6)
       -> ChatResponse
 
 Extension points already reserved:
-    Phase 7 answers document intents via RAG
-    Phase 8 swaps reply generation for an LLM (intent still drives routing)
     Phase 9 adds tool decisions (calculator, time, weather, ...)
 """
 
@@ -22,6 +22,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from time import perf_counter
+from typing import Any
 
 from app.memory import (
     MemoryContext,
@@ -39,9 +40,12 @@ from app.schemas import ChatRequest, ChatResponse, Entity, ProcessingInfo, Sourc
 
 logger = logging.getLogger(__name__)
 
+# Sentinel: "no llm argument given" (resolve lazily) vs llm=None ("disabled").
+_LAZY: Any = object()
+
 
 class ChatService:
-    """Chat pipeline with pluggable conversation memory and RAG store."""
+    """Chat pipeline with pluggable memory, RAG store and LLM provider."""
 
     def __init__(
         self,
@@ -49,6 +53,7 @@ class ChatService:
         memory: MemoryStore | None = None,
         window: int | None = None,
         rag_store: RagStore | None = None,
+        llm: Any = _LAZY,
     ) -> None:
         if window is None:
             from app.config import get_settings
@@ -58,6 +63,8 @@ class ChatService:
         self.memory = memory if memory is not None else get_memory_store()
         self.window = window
         self._rag_store = rag_store  # None = resolve lazily on first document question
+        self._llm = None if llm is _LAZY else llm
+        self._llm_resolved = llm is not _LAZY  # injected provider/None == resolved
         self.extractor = get_entity_extractor()
 
     def handle(self, request: ChatRequest) -> ChatResponse:
@@ -82,7 +89,11 @@ class ChatService:
                 rag_reply, sources = rag
 
         reply = rag_reply or self._generate_reply(
-            processed, intent_result, context, request.message
+            processed,
+            intent_result,
+            context,
+            request.message,
+            entity_spans=entity_spans,
         )
         elapsed_ms = (perf_counter() - started) * 1000
 
@@ -158,7 +169,67 @@ class ChatService:
             logger.exception("RAG failed — falling back to template reply")
             return None
 
-    # --- response generation (deterministic; LLM takes over in Phase 8) ------
+    # --- LLM reply generation (Phase 8) --------------------------------------
+
+    def _get_llm(self) -> Any:
+        """Resolve the configured provider once; None = templates only."""
+        if not self._llm_resolved:
+            from app.llm import get_llm_provider
+
+            self._llm = get_llm_provider()
+            self._llm_resolved = True
+        return self._llm
+
+    def _llm_reply(
+        self,
+        *,
+        intent: IntentResult,
+        context: MemoryContext,
+        raw_message: str,
+        entity_spans: list[EntitySpan],
+    ) -> str | None:
+        """Phrase the reply with the LLM over the pipeline's decisions.
+
+        Returns None when there is no provider or anything fails — the
+        caller falls back to deterministic templates (availability over
+        fluency; a provider outage must not break chat).
+        """
+        from app.config import get_settings
+        from app.llm import LLMError, build_chat_request
+
+        try:
+            provider = self._get_llm()
+            if provider is None:
+                return None
+            settings = get_settings()
+            request = build_chat_request(
+                message=raw_message,
+                intent_label=intent.label,
+                confidence=intent.confidence,
+                entity_texts=[f"{s.label}={s.text}" for s in entity_spans],
+                messages=context.messages,
+                known_name=context.known_name,
+                max_tokens=settings.llm_max_tokens,
+                temperature=settings.llm_temperature,
+            )
+            response = provider.complete(request)
+            text = (response.text or "").strip()
+            if not text:
+                logger.warning("LLM %s returned an empty reply — using template", provider.name)
+                return None
+            logger.debug(
+                "LLM reply from %s/%s (%.1f ms)", response.provider, response.model,
+                response.latency_ms,
+            )
+            return text
+        except LLMError as exc:
+            logger.warning("LLM failed (%s) — falling back to template reply", exc)
+            return None
+        except Exception:
+            logger.exception("unexpected LLM failure — falling back to template reply")
+            return None
+
+    # --- reply generation: deterministic cases, LLM phrasing, templates ------
 
     def _generate_reply(
         self,
@@ -166,6 +237,7 @@ class ChatService:
         intent: IntentResult,
         context: MemoryContext,
         raw_message: str,
+        entity_spans: list[EntitySpan] | None = None,
     ) -> str:
         # Memory-aware answers come first: they use REAL stored history.
         if is_name_question(raw_message):
@@ -179,8 +251,20 @@ class ChatService:
         if declared:
             return f"Nice to meet you, {declared}! I'll remember that for this session."
 
+        # Always-correct computed answers never go to a model (routing principle).
         if intent.label == "time":
             return _time_reply()
+
+        # Phase 8: the LLM words the reply; the pipeline already decided
+        # what it means. Any failure degrades to templates below.
+        llm_reply = self._llm_reply(
+            intent=intent,
+            context=context,
+            raw_message=raw_message,
+            entity_spans=entity_spans or [],
+        )
+        if llm_reply:
+            return llm_reply
 
         responses = load_dataset().responses_for(intent.label)
         if not responses:

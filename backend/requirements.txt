@@ -56,3 +56,11 @@ httpx2>=2.10
 pypdf>=5.0,<7.0
 # multipart form parsing for FastAPI File uploads (documents endpoint)
 python-multipart>=0.0.9,<1.0
+
+# --- Phase 8: LLM providers ---
+# HTTP client for provider APIs (OpenAI/HuggingFace); injectable transport
+# lets every provider test run offline via httpx.MockTransport
+httpx>=0.27,<1.0
+# LocalModelProvider loads a transformers text-generation pipeline lazily
+# (already installed via sentence-transformers; declared as a direct import)
+transformers>=4.40,<6.0

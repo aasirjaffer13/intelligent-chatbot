@@ -23,7 +23,7 @@ where each future phase plugs in — without rewriting what already works.
 │  NLP — app/nlp/                   [Phase 2+]                │
 │  preprocessing · tokenizer · intent · entities · similarity │
 ├──────────────┬───────────────┬──────────────┬───────────────┤
-│ memory/      │ rag/          │ models/      │ LLM providers │
+│ memory/      │ rag/          │ models/      │ llm/          │
 │ [Phase 6]    │ [Phase 7]     │ [Phase 6]    │ [Phase 8]     │
 ├──────────────┴───────────────┴──────────────┴───────────────┤
 │  Core — app/core/  (logging, typed exceptions)              │
@@ -158,6 +158,7 @@ In production, set `VITE_API_BASE_URL` (or serve both from one origin).
 | API contract | `fastapi.testclient` + pytest | Status codes, exact JSON shapes (`tests/`) |
 | NLP unit tests | pytest | Each pure function: tokens, stems, intents (Phase 2+) |
 | Training evaluation | training script metrics | accuracy/P/R/F1/confusion matrix (Phase 3) |
+| LLM providers | pytest + `httpx.MockTransport` | auth, payloads, error paths, template fallback (Phase 8) |
 
 Tests run without a database, network or model downloads — they must always be
 fast and offline.
@@ -170,5 +171,6 @@ fast and offline.
 | --- | --- | --- |
 | PostgreSQL + SQLAlchemy | Phase 6 ✅ | conversations, messages; RAG chunks/documents on the same engine (in-memory/SQLite fallback when no URL) |
 | pgvector | Phase 7 ⚙️ | schema + query path built (dual-mode); extension pending on this machine → numpy cosine fallback until installed |
+| LLM providers | Phase 8 ✅ | OpenAI / HuggingFace / local transformers behind one interface; `auto` degrades to templates without keys |
 | Redis (optional) | later | caching / rate limiting |
 | Model artifacts (`backend/artifacts/`) | Phase 3 ✅ | trained models saved, never retrained on startup |

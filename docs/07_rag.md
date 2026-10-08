@@ -168,4 +168,4 @@ end-to-end chat question answered with citations.
 
 ---
 
-*Previous: [memory.md](memory.md) · Next: LLM integration (Phase 8)*
+*Previous: [memory.md](memory.md) · Next: [08_llm_integration.md](08_llm_integration.md)*

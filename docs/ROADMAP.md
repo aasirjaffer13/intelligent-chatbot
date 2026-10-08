@@ -129,15 +129,24 @@ auto session creation verified end-to-end through the API.
 (ingest → list → top-k retrieval 0.367 → grounded quoted answer → delete
 with zero orphaned chunks); unanswerable questions refused with no citations.
 
-## Phase 8 — LLM integration
+## Phase 8 — LLM integration ✅
 *V6*
 
-- [ ] `LLMProvider` interface: `OpenAIProvider`, `HuggingFaceProvider`,
-      `LocalModelProvider`
-- [ ] Keys exclusively via environment variables
-- [ ] LLM used for *response generation* over NLP pipeline outputs —
-      the pipeline still decides intent/entities
-- [ ] Docs: prompt construction, provider abstraction
+- [x] `LLMProvider` interface: `OpenAIProvider`, `HuggingFaceProvider`,
+      `LocalModelProvider` (+ `MockProvider` for offline tests, and **no
+      provider** when `auto` finds no credentials — templates stay the default)
+- [x] Keys exclusively via environment variables (`SecretStr`, never
+      logged/repr'd; `OPENAI_API_KEY`, `HF_TOKEN` / `NOVA_*` alternates)
+- [x] LLM used for *response generation* over NLP pipeline outputs —
+      the pipeline still decides intent/entities; time, name recall and
+      RAG quotes never reach the model; every failure falls back to templates
+- [x] Docs: prompt construction, provider abstraction
+      (`docs/08_llm_integration.md`)
+
+**Exit criteria met:** 200 tests passing (35 offline LLM tests incl.
+MockTransport auth/payload checks, factory auto-selection with scrubbed
+env, chat integration proving LLM → template fallback and routing
+priority).
 
 ## Phase 9 — Tools + agent architecture
 *V7 + V8 + V9*

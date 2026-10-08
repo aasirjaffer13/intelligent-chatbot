@@ -7,7 +7,7 @@ all the way to autonomous agents — **without hiding the NLP behind an LLM API*
 > Every component starts as a simple implementation you can read and understand,
 > then gets replaced by a more advanced model behind the *same interface*.
 
-**Current status: Phase 7 — Retrieval-Augmented Generation** (Phases 1-7 complete)
+**Current status: Phase 8 — LLM Integration** (Phases 1-8 complete)
 
 ---
 
@@ -17,7 +17,7 @@ all the way to autonomous agents — **without hiding the NLP behind an LLM API*
 | --- | --- |
 | Learn NLP for real | Implement each concept by hand first (rules → TF-IDF → ML → embeddings → transformers → RAG → agents) |
 | Be portfolio-quality | Clean layering, type hints, Pydantic contracts, tests, logging, docs |
-| Not be an LLM wrapper | LLM integration only arrives in Phase 8, behind a `LLMProvider` abstraction |
+| Not be an LLM wrapper | LLM integration is isolated behind an `LLMProvider` abstraction; the NLP pipeline still makes every decision |
 | Stay extensible | Each NLP component is swappable behind a stable function signature |
 
 Full phase breakdown: [docs/ROADMAP.md](docs/ROADMAP.md) ·
@@ -43,7 +43,8 @@ nova/
 │   │   ├── services/         Business logic / orchestration (Phase 2+)
 │   │   ├── nlp/              NLP components (Phase 2+)
 │   │   ├── memory/           Conversation memory (Phase 6)
-│   │   └── rag/              Retrieval-augmented generation (Phase 7)
+│   │   ├── rag/              Retrieval-augmented generation (Phase 7)
+│   │   └── llm/              LLM providers + prompting (Phase 8)
 │   ├── tests/                pytest suite (API contract tests)
 │   ├── requirements.txt      Each dependency documented with a reason
 │   └── .env.example
@@ -190,7 +191,8 @@ refusal (RAG: `docs/07_rag.md`).
 | **5** | Semantic search with sentence embeddings | ✅ Done |
 | **6** | Conversation memory (sessions in PostgreSQL) | ✅ Done |
 | **7** | RAG: upload documents, grounded answers with citations | ✅ Done |
-| 8 | LLM integration via `LLMProvider` abstraction | ⬜ Next |
+| **8** | LLM integration via `LLMProvider` abstraction | ✅ Done |
+| 9 | Tool calling + agent architecture | ⬜ Next |
 | 9 | Tool calling + agent architecture | ⬜ |
 | 10 | Production-grade frontend polish (streaming, markdown, themes) | ⬜ |
 

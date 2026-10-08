@@ -127,7 +127,8 @@ Predict the output first, then run it — disagreement is where learning happens
 | 5 | `docs/nlp/05_embeddings.md` + notebook `05` |
 | 6 | `docs/memory.md` (no notebook) |
 | 7 | `docs/07_rag.md` + notebook `07_rag.ipynb` |
-| 8–9 | `docs/nlp/10_transformers.md` (attention), `11_agents_and_tools.md` + notebook `06` — *planned* |
+| 8 | `docs/08_llm_integration.md` (no notebook) |
+| 9 | `docs/nlp/10_transformers.md` (attention), `11_agents_and_tools.md` + notebook `06` — *planned* |
 
 *(Docs and notebooks are numbered by phase; the Phase 8–9 row is the
 original plan and will be reshaped as those phases land.)*
