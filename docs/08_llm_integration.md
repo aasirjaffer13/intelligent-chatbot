@@ -148,4 +148,4 @@ and RAG never reach the model).
 
 ---
 
-*Previous: [07_rag.md](07_rag.md) · Next: tools + agent (Phase 9)*
+*Previous: [07_rag.md](07_rag.md) · Next: [09_agents.md](09_agents.md)*

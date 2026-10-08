@@ -57,7 +57,8 @@ services/chat_service.ChatService.handle()
         │      → strip punctuation → remove stopwords → (stem|lemma)
         │
         └── _generate_reply()   [Phase 3: per-intent templates
-                                 Phase 8: LLM generation]
+                                 Phase 8: LLM generation
+                                 Phase 9: agent tool loop]
         │
         ▼
 ChatResponse (Pydantic) ── stable contract for every future phase
@@ -159,6 +160,7 @@ In production, set `VITE_API_BASE_URL` (or serve both from one origin).
 | NLP unit tests | pytest | Each pure function: tokens, stems, intents (Phase 2+) |
 | Training evaluation | training script metrics | accuracy/P/R/F1/confusion matrix (Phase 3) |
 | LLM providers | pytest + `httpx.MockTransport` | auth, payloads, error paths, template fallback (Phase 8) |
+| Agent loop | pytest + scripted provider | tool execution, observations, step rail (Phase 9) |
 
 Tests run without a database, network or model downloads — they must always be
 fast and offline.

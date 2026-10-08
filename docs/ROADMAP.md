@@ -148,14 +148,26 @@ MockTransport auth/payload checks, factory auto-selection with scrubbed
 env, chat integration proving LLM → template fallback and routing
 priority).
 
-## Phase 9 — Tools + agent architecture
+## Phase 9 — Tools + agent architecture ✅
 *V7 + V8 + V9*
 
-- [ ] Tool registry: calculator, current_time, document_search, web_search, weather
-- [ ] Loop: user → LLM → tool decision → tool → result → LLM → final answer
-- [ ] Tools are modular: register a class, it becomes available
-- [ ] Conversation memory (V7) feeds the agent loop
-- [ ] Docs: tool calling, ReAct-style agents, when agents help vs hurt
+- [x] Tool registry: calculator, current_time, document_search, web_search,
+      weather — register a class, it appears in the next prompt; duplicate
+      names rejected; errors returned as observations, never raised
+- [x] Loop: user → LLM → tool decision → tool → result → LLM → final answer
+      (ReAct-style, bounded by `NOVA_AGENT_MAX_STEPS`, forgiving JSON
+      parsing, full step trace in `AgentResult.steps`)
+- [x] Tools are modular: `Tool` ABC + `ToolRegistry.register()`;
+      calculator uses an AST whitelist (never `eval`); HTTP tools are
+      offline-testable via injectable transports
+- [x] Conversation memory (V7) feeds the agent loop — the prompt builder
+      includes the memory window; time/name/RAG routes still bypass the loop
+- [x] Docs: tool calling, ReAct-style agents, when agents help vs hurt
+      (`docs/09_agents.md`)
+
+**Exit criteria met:** 249 tests passing (49 offline agent tests:
+tool→observation→final round trip, unknown/crashing tools, max-steps
+rail, deterministic bypass, template fallback on provider failure).
 
 ## Phase 10 — Frontend production pass
 - [ ] Streaming responses, markdown + code blocks with copy buttons

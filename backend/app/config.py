@@ -92,6 +92,13 @@ class Settings(BaseSettings):
     llm_timeout: float = Field(
         default=30.0, gt=0.0, le=300.0, description="Provider HTTP timeout in seconds."
     )
+    # --- Phase 9: agent loop ---
+    agent_max_steps: int = Field(
+        default=6,
+        ge=1,
+        le=20,
+        description="Max LLM/tool rounds per turn before the loop bails out.",
+    )
     # Secrets: standard env names first, NOVA_-prefixed alternates second.
     # Never defaulted in .env.example, never logged, never repr'd.
     openai_api_key: SecretStr | None = Field(

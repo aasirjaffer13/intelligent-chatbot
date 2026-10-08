@@ -55,10 +55,14 @@ def client(tmp_path) -> TestClient:
     previous_memory = chat_module.chat_service.memory
     previous_llm = chat_module.chat_service._llm
     previous_llm_resolved = chat_module.chat_service._llm_resolved
+    previous_agent = chat_module.chat_service._agent
+    previous_agent_resolved = chat_module.chat_service._agent_resolved
     chat_module.chat_service._rag_store = rag_store
     chat_module.chat_service.memory = InMemoryStore()
     chat_module.chat_service._llm = None
     chat_module.chat_service._llm_resolved = True
+    chat_module.chat_service._agent = None
+    chat_module.chat_service._agent_resolved = False  # re-derives from _llm each test
 
     with TestClient(app) as test_client:
         yield test_client
@@ -67,4 +71,6 @@ def client(tmp_path) -> TestClient:
     chat_module.chat_service.memory = previous_memory
     chat_module.chat_service._llm = previous_llm
     chat_module.chat_service._llm_resolved = previous_llm_resolved
+    chat_module.chat_service._agent = previous_agent
+    chat_module.chat_service._agent_resolved = previous_agent_resolved
     app.dependency_overrides.clear()

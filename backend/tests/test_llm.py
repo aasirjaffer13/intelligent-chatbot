@@ -447,8 +447,12 @@ class TestChatEndpointWithLLM:
         mock = MockProvider(reply="Hello from the injected provider.")
         previous = chat_module.chat_service._llm
         previous_resolved = chat_module.chat_service._llm_resolved
+        previous_agent = chat_module.chat_service._agent
+        previous_agent_resolved = chat_module.chat_service._agent_resolved
         chat_module.chat_service._llm = mock
         chat_module.chat_service._llm_resolved = True
+        chat_module.chat_service._agent = None
+        chat_module.chat_service._agent_resolved = False  # rebuild around mock
         try:
             resp = client.post("/api/chat", json={"message": "hello there"})
             assert resp.status_code == 200
@@ -459,3 +463,5 @@ class TestChatEndpointWithLLM:
         finally:
             chat_module.chat_service._llm = previous
             chat_module.chat_service._llm_resolved = previous_resolved
+            chat_module.chat_service._agent = previous_agent
+            chat_module.chat_service._agent_resolved = previous_agent_resolved

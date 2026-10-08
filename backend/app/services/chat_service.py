@@ -8,13 +8,13 @@ Pipeline (Phase 8):
       -> intent classification                           (Phase 3)
       -> entity extraction                               (Phase 4)
       -> reply: RAG for document questions (Phase 7),
-                LLM phrasing over pipeline outputs (Phase 8),
+                agent loop: LLM + tool calls (Phases 8-9),
                 deterministic cases + template fallback
       -> persist both turns to memory                    (Phase 6)
       -> ChatResponse
 
 Extension points already reserved:
-    Phase 9 adds tool decisions (calculator, time, weather, ...)
+    Phase 10 adds streaming + frontend polish
 """
 
 from __future__ import annotations
@@ -54,6 +54,7 @@ class ChatService:
         window: int | None = None,
         rag_store: RagStore | None = None,
         llm: Any = _LAZY,
+        agent: Any = _LAZY,
     ) -> None:
         if window is None:
             from app.config import get_settings
@@ -65,6 +66,8 @@ class ChatService:
         self._rag_store = rag_store  # None = resolve lazily on first document question
         self._llm = None if llm is _LAZY else llm
         self._llm_resolved = llm is not _LAZY  # injected provider/None == resolved
+        self._agent = None if agent is _LAZY else agent
+        self._agent_resolved = agent is not _LAZY
         self.extractor = get_entity_extractor()
 
     def handle(self, request: ChatRequest) -> ChatResponse:
@@ -169,7 +172,7 @@ class ChatService:
             logger.exception("RAG failed — falling back to template reply")
             return None
 
-    # --- LLM reply generation (Phase 8) --------------------------------------
+    # --- LLM + agent reply generation (Phases 8-9) ----------------------------
 
     def _get_llm(self) -> Any:
         """Resolve the configured provider once; None = templates only."""
@@ -180,6 +183,25 @@ class ChatService:
             self._llm_resolved = True
         return self._llm
 
+    def _get_agent(self) -> Any:
+        """Resolve the agent loop once: injected agent wins; otherwise the
+        loop wraps the resolved provider (None provider = no agent)."""
+        if self._agent_resolved:
+            return self._agent
+        provider = self._get_llm()
+        if provider is None:
+            self._agent_resolved = True
+            return None
+        from app.agent import AgentLoop
+        from app.config import get_settings
+        from app.tools import build_default_registry
+
+        self._agent = AgentLoop(
+            provider, build_default_registry(), max_steps=get_settings().agent_max_steps
+        )
+        self._agent_resolved = True
+        return self._agent
+
     def _llm_reply(
         self,
         *,
@@ -188,9 +210,10 @@ class ChatService:
         raw_message: str,
         entity_spans: list[EntitySpan],
     ) -> str | None:
-        """Phrase the reply with the LLM over the pipeline's decisions.
+        """Run the agent loop (Phase 9): the model may call tools and
+        iterate, or answer directly (single step, Phase 8 behaviour).
 
-        Returns None when there is no provider or anything fails — the
+        Returns None when there is no agent or anything fails — the
         caller falls back to deterministic templates (availability over
         fluency; a provider outage must not break chat).
         """
@@ -198,8 +221,8 @@ class ChatService:
         from app.llm import LLMError, build_chat_request
 
         try:
-            provider = self._get_llm()
-            if provider is None:
+            agent = self._get_agent()
+            if agent is None:
                 return None
             settings = get_settings()
             request = build_chat_request(
@@ -212,21 +235,25 @@ class ChatService:
                 max_tokens=settings.llm_max_tokens,
                 temperature=settings.llm_temperature,
             )
-            response = provider.complete(request)
-            text = (response.text or "").strip()
+            result = agent.run(request)
+            text = (result.reply or "").strip()
             if not text:
-                logger.warning("LLM %s returned an empty reply — using template", provider.name)
+                logger.warning("agent returned an empty reply — using template")
                 return None
-            logger.debug(
-                "LLM reply from %s/%s (%.1f ms)", response.provider, response.model,
-                response.latency_ms,
-            )
+            if result.used_tools:
+                logger.info(
+                    "agent reply via tools: %s | %d steps",
+                    ", ".join(dict.fromkeys(result.used_tools)),
+                    len(result.steps),
+                )
+            else:
+                logger.debug("agent direct reply (%d steps)", len(result.steps))
             return text
         except LLMError as exc:
             logger.warning("LLM failed (%s) — falling back to template reply", exc)
             return None
         except Exception:
-            logger.exception("unexpected LLM failure — falling back to template reply")
+            logger.exception("unexpected agent failure — falling back to template reply")
             return None
 
     # --- reply generation: deterministic cases, LLM phrasing, templates ------
