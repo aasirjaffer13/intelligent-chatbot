@@ -7,7 +7,7 @@ all the way to autonomous agents — **without hiding the NLP behind an LLM API*
 > Every component starts as a simple implementation you can read and understand,
 > then gets replaced by a more advanced model behind the *same interface*.
 
-**Current status: Phase 6 — Conversation Memory** (Phases 1-5 complete)
+**Current status: Phase 7 — Retrieval-Augmented Generation** (Phases 1-7 complete)
 
 ---
 
@@ -125,7 +125,10 @@ cd ..\backend
 | Method | Path | Description |
 | --- | --- | --- |
 | `GET` | `/api/health` | Liveness probe — `{"status":"healthy","service":"nova"}` |
-| `POST` | `/api/chat` | Send a message (memory + preprocess + intent + entities) |
+| `POST` | `/api/chat` | Send a message (memory + preprocess + intent + entities + RAG) |
+| `POST` | `/api/documents/upload` | Upload PDF/txt/md — extract, chunk, embed, store |
+| `GET` | `/api/documents` | List uploaded documents |
+| `DELETE` | `/api/documents/{id}` | Remove a document and its chunks |
 | `GET` | `/` | Service info |
 | `GET` | `/docs` | Swagger UI |
 
@@ -153,9 +156,12 @@ curl -X POST http://localhost:8000/api/chat `
 ```
 
 The **response shape is the full Phase 1+ contract** and stays stable —
-later phases fill `intent`, `entities` and `processing` with real NLP output
-instead of changing the schema. Pass the returned `session_id` back on later
-requests to continue the same conversation (memory: `docs/memory.md`).
+later phases fill `intent`, `entities`, `processing` and `sources` with real
+NLP output instead of changing the schema. Pass the returned `session_id`
+back on later requests to continue the same conversation
+(memory: `docs/memory.md`). Questions routed to `document_question` are
+answered only from uploaded documents, with quoted `sources` or an explicit
+refusal (RAG: `docs/07_rag.md`).
 
 ---
 
@@ -183,8 +189,8 @@ requests to continue the same conversation (memory: `docs/memory.md`).
 | **4** | Entity extraction: rules → spaCy NER behind one abstraction | ✅ Done |
 | **5** | Semantic search with sentence embeddings | ✅ Done |
 | **6** | Conversation memory (sessions in PostgreSQL) | ✅ Done |
-| 7 | RAG: upload documents, grounded answers with citations | ⬜ Next |
-| 8 | LLM integration via `LLMProvider` abstraction | ⬜ |
+| **7** | RAG: upload documents, grounded answers with citations | ✅ Done |
+| 8 | LLM integration via `LLMProvider` abstraction | ⬜ Next |
 | 9 | Tool calling + agent architecture | ⬜ |
 | 10 | Production-grade frontend polish (streaming, markdown, themes) | ⬜ |
 

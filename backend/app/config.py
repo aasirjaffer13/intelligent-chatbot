@@ -49,6 +49,26 @@ class Settings(BaseSettings):
         le=100,
         description="How many recent messages form the session context window.",
     )
+    rag_top_k: int = Field(
+        default=4,
+        ge=1,
+        le=20,
+        description="How many chunks retrieval returns per document question.",
+    )
+    rag_min_score: float = Field(
+        default=0.35,
+        ge=0.0,
+        le=1.0,
+        description=(
+            "Minimum cosine similarity for a chunk to ground an answer; "
+            "below it the bot refuses instead of guessing."
+        ),
+    )
+    max_upload_mb: int = Field(default=10, ge=1, le=100, description="Upload size cap.")
+    document_dir: str = Field(
+        default="",
+        description="Where uploaded files are stored. Empty = nova/data/documents.",
+    )
 
     @field_validator("log_level")
     @classmethod

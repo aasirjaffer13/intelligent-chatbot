@@ -122,11 +122,12 @@ Predict the output first, then run it — disagreement is where learning happens
 | Phase | Docs added |
 | --- | --- |
 | 2 | `docs/nlp/01_preprocessing.md`, `02_tokenization.md` + `notebooks/01_text_preprocessing.ipynb` |
-| 3 | `docs/nlp/03_tf_idf.md`, `04_classification_metrics.md` + notebooks `02`, `03` |
-| 4 | `docs/nlp/05_ner.md` + notebook `05` |
-| 5 | `docs/nlp/06_embeddings.md`, `07_semantic_search.md` + notebook `04` |
-| 7 | `docs/nlp/08_rag.md`, `09_vector_databases.md` + notebook `07` |
-| 8–9 | `docs/nlp/10_transformers.md` (attention), `11_agents_and_tools.md` + notebook `06` |
+| 3 | `docs/nlp/03_classification.md`, `docs/reports/intent_model.md` + notebooks `02`, `03` |
+| 4 | `docs/nlp/04_entity_extraction.md` + notebook `04` |
+| 5 | `docs/nlp/05_embeddings.md` + notebook `05` |
+| 6 | `docs/memory.md` (no notebook) |
+| 7 | `docs/07_rag.md` + notebook `07_rag.ipynb` |
+| 8–9 | `docs/nlp/10_transformers.md` (attention), `11_agents_and_tools.md` + notebook `06` — *planned* |
 
-*(Notebook numbering intentionally stays stable from the project brief; docs
-are numbered by concept order.)*
+*(Docs and notebooks are numbered by phase; the Phase 8–9 row is the
+original plan and will be reshaped as those phases land.)*

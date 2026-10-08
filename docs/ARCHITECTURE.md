@@ -164,11 +164,11 @@ fast and offline.
 
 ---
 
-## 8. Planned infrastructure (not yet built, by design)
+## 8. Infrastructure status
 
 | Piece | Arrives | Notes |
 | --- | --- | --- |
-| PostgreSQL + SQLAlchemy | Phase 6 | conversations, messages, documents |
-| pgvector | Phase 7 | vector similarity search in Postgres |
+| PostgreSQL + SQLAlchemy | Phase 6 ✅ | conversations, messages; RAG chunks/documents on the same engine (in-memory/SQLite fallback when no URL) |
+| pgvector | Phase 7 ⚙️ | schema + query path built (dual-mode); extension pending on this machine → numpy cosine fallback until installed |
 | Redis (optional) | later | caching / rate limiting |
-| Model artifacts (`backend/artifacts/`) | Phase 3 | trained models saved, never retrained on startup |
+| Model artifacts (`backend/artifacts/`) | Phase 3 ✅ | trained models saved, never retrained on startup |

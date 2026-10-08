@@ -50,3 +50,9 @@ pytest>=8.0
 # httpx2 is the maintained successor of httpx; starlette's TestClient
 # (fastapi.testclient) uses it and warns on plain httpx
 httpx2>=2.10
+
+# --- Phase 7: retrieval-augmented generation ---
+# PDF text extraction (document upload pipeline); txt/md use stdlib decode
+pypdf>=5.0,<7.0
+# multipart form parsing for FastAPI File uploads (documents endpoint)
+python-multipart>=0.0.9,<1.0

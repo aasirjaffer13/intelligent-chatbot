@@ -63,6 +63,19 @@ class ProcessingInfo(BaseModel):
     sentences: list[str] = Field(default_factory=list, description="Detected sentences.")
 
 
+class Source(BaseModel):
+    """A retrieved document chunk backing a grounded answer (Phase 7).
+
+    Added additively to the contract: older clients ignore the field.
+    """
+
+    document_id: str = Field(description="The uploaded document this chunk came from.")
+    filename: str = Field(description="Original filename, for citation display.")
+    chunk_index: int = Field(description="0-based chunk position within the document.")
+    score: float = Field(ge=-1.0, le=1.0, description="Cosine similarity to the query.")
+    quote: str = Field(description="The excerpt the answer draws from.")
+
+
 class ChatResponse(BaseModel):
     """Outgoing chat payload."""
 
@@ -70,6 +83,10 @@ class ChatResponse(BaseModel):
     intent: str = Field(description="Detected intent label.")
     confidence: float = Field(ge=0.0, le=1.0, description="Classifier confidence.")
     entities: list[Entity] = Field(default_factory=list)
+    sources: list[Source] = Field(
+        default_factory=list,
+        description="RAG citations when the reply is grounded in documents (Phase 7).",
+    )
     processing: ProcessingInfo = Field(default_factory=ProcessingInfo)
     session_id: str | None = Field(
         default=None,

@@ -34,19 +34,21 @@ from app.memory import (
 from app.nlp.entities import EntitySpan, get_entity_extractor
 from app.nlp.intent import IntentResult, classify_intent, load_dataset
 from app.nlp.preprocessing import PreprocessConfig, PreprocessResult, preprocess
-from app.schemas import ChatRequest, ChatResponse, Entity, ProcessingInfo
+from app.rag import RagStore, compose_grounded_answer
+from app.schemas import ChatRequest, ChatResponse, Entity, ProcessingInfo, Source
 
 logger = logging.getLogger(__name__)
 
 
 class ChatService:
-    """Chat pipeline with pluggable conversation memory."""
+    """Chat pipeline with pluggable conversation memory and RAG store."""
 
     def __init__(
         self,
         config: PreprocessConfig | None = None,
         memory: MemoryStore | None = None,
         window: int | None = None,
+        rag_store: RagStore | None = None,
     ) -> None:
         if window is None:
             from app.config import get_settings
@@ -55,6 +57,7 @@ class ChatService:
         self.config = config or PreprocessConfig()
         self.memory = memory if memory is not None else get_memory_store()
         self.window = window
+        self._rag_store = rag_store  # None = resolve lazily on first document question
         self.extractor = get_entity_extractor()
 
     def handle(self, request: ChatRequest) -> ChatResponse:
@@ -69,7 +72,18 @@ class ChatService:
         processed = preprocess(request.message, self.config)
         intent_result = classify_intent(request.message)
         entity_spans = self.extractor.extract(request.message)
-        reply = self._generate_reply(processed, intent_result, context, request.message)
+
+        # RAG answers document questions from retrieved context only (Phase 7).
+        sources: list[Source] = []
+        rag_reply: str | None = None
+        if intent_result.label == "document_question":
+            rag = self._rag_answer(request.message)
+            if rag is not None:
+                rag_reply, sources = rag
+
+        reply = rag_reply or self._generate_reply(
+            processed, intent_result, context, request.message
+        )
         elapsed_ms = (perf_counter() - started) * 1000
 
         # Persist both turns — next request's context reads them back.
@@ -98,6 +112,7 @@ class ChatService:
             intent=intent_result.label,
             confidence=round(intent_result.confidence, 4),
             entities=[_to_schema_entity(span) for span in entity_spans],
+            sources=sources,
             processing=ProcessingInfo(
                 tokens=processed.tokens,
                 normalized_text=processed.normalized_text,
@@ -105,6 +120,43 @@ class ChatService:
             ),
             session_id=session_id,
         )
+
+    # --- RAG (Phase 7) -------------------------------------------------------
+
+    def _rag_answer(self, message: str) -> tuple[str, list[Source]] | None:
+        """Ground a document question in retrieved chunks.
+
+        Returns None when RAG itself fails — the caller falls back to the
+        template reply rather than dropping the message on the floor.
+        """
+        from app.config import get_settings
+        from app.rag import Retriever, get_rag_store
+        from app.services.embedding_service import get_embedding_service
+
+        try:
+            if self._rag_store is None:
+                self._rag_store = get_rag_store()
+            settings = get_settings()
+            documents = self._rag_store.list_documents()
+
+            if not documents:
+                answer = compose_grounded_answer(
+                    message, [], min_score=settings.rag_min_score, has_documents=False
+                )
+            else:
+                hits = Retriever(self._rag_store, get_embedding_service()).search(
+                    message, top_k=settings.rag_top_k
+                )
+                answer = compose_grounded_answer(
+                    message,
+                    hits,
+                    min_score=settings.rag_min_score,
+                    has_documents=True,
+                )
+            return answer.reply, answer.sources
+        except Exception:
+            logger.exception("RAG failed — falling back to template reply")
+            return None
 
     # --- response generation (deterministic; LLM takes over in Phase 8) ------
 

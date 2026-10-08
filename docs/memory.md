@@ -142,4 +142,4 @@ retention policies — all Phase 10+/production concerns.
 
 ---
 
-*Previous: [05_embeddings.md](nlp/05_embeddings.md) · Next: RAG (Phase 7)*
+*Previous: [05_embeddings.md](nlp/05_embeddings.md) · Next: [07_rag.md](07_rag.md)*

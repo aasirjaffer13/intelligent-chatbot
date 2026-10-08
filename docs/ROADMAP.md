@@ -109,18 +109,25 @@ tests passing.
 **Exit criteria met:** 137 tests passing; name recall + session isolation +
 auto session creation verified end-to-end through the API.
 
-## Phase 7 — RAG
+## Phase 7 — RAG ✅
 *V5–V6*
 
-- [ ] Document upload (PDF/text) → extract → chunk → embed → store
-      (pgvector)
-- [ ] Similarity search → top-k chunks → grounded answer + **source citations**
-- [ ] Endpoints: `POST /api/documents/upload`, `GET /api/documents`,
+- [x] Document upload (PDF/text) → extract → chunk → embed → store
+      (dual-mode: pgvector when `CREATE EXTENSION vector` succeeds, numpy
+      cosine fallback otherwise — verified on SQLite **and** PostgreSQL 18)
+- [x] Similarity search → top-k chunks → grounded answer + **source citations**
+      (extractive quoted sentence, `sources[]` in `ChatResponse`, refusal
+      below `NOVA_RAG_MIN_SCORE` instead of guessing)
+- [x] Endpoints: `POST /api/documents/upload`, `GET /api/documents`,
       `DELETE /api/documents/{id}`
-- [ ] Strict separation: document-derived knowledge vs general conversation;
+- [x] Strict separation: document-derived knowledge vs general conversation;
       refuse to answer beyond retrieved context (no hallucinated document facts)
-- [ ] Docs: chunking strategies, vector databases, grounding
-- [ ] Notebook: `07_rag.ipynb`
+- [x] Docs: chunking strategies, vector databases, grounding (`docs/07_rag.md`)
+- [x] Notebook: `07_rag.ipynb`
+
+**Exit criteria met:** 166 tests passing; PostgreSQL acceptance passed
+(ingest → list → top-k retrieval 0.367 → grounded quoted answer → delete
+with zero orphaned chunks); unanswerable questions refused with no citations.
 
 ## Phase 8 — LLM integration
 *V6*

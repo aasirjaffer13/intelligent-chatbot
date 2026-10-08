@@ -1,0 +1,23 @@
+NOVA Sample Employee Handbook (demo document for RAG)
+
+Vacation and time off
+Employees accrue 20 paid vacation days per calendar year. Unused days roll
+over up to a maximum of 5 days into the next year. Requests longer than one
+week require manager approval submitted at least 14 days in advance. Paid
+sick leave accrues separately at 10 days per year and does not roll over.
+Parental leave is 16 weeks at full pay.
+
+Remote work
+Remote work requires a signed equipment agreement before the first workday
+from home. Company laptops must use full-disk encryption and the corporate
+VPN. The office is closed between Christmas and New Year's Eve.
+
+Security rules
+All passwords must be at least 12 characters long. Passwords expire every
+90 days and must never be reused. Multi-factor authentication is mandatory
+for email, the HR portal, and any production system. Lost devices must be
+reported to IT within one hour of discovery.
+
+Travel
+Travel reimbursements must be filed within 30 days of returning from a
+trip. Economy class flights are standard for hops under six hours.
