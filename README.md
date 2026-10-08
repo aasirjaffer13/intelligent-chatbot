@@ -1,13 +1,15 @@
 # NOVA — Intelligent NLP Chatbot
 
 **NOVA** is a production-quality chatbot built as a long-term learning project.
-The architecture evolves incrementally through nine phases — from rule-based NLP
-all the way to autonomous agents — **without hiding the NLP behind an LLM API**.
+The architecture evolves incrementally through ten phases — from rule-based NLP
+all the way to autonomous agents and a production-grade UI — **without hiding
+the NLP behind an LLM API**.
 
 > Every component starts as a simple implementation you can read and understand,
 > then gets replaced by a more advanced model behind the *same interface*.
 
-**Current status: Phase 9 — Tools + Agent Architecture** (Phases 1-9 complete)
+**Current status: Complete — Phases 1-10 all done** (streaming UI, markdown,
+themes, conversation sidebar, RAG citations)
 
 ---
 
@@ -52,10 +54,12 @@ nova/
 │   └── .env.example
 ├── frontend/                 React + Vite + Tailwind chat UI
 │   ├── src/
-│   │   ├── components/       ChatHeader, MessageList, MessageBubble, ChatInput, ...
+│   │   ├── components/       Sidebar, ChatHeader, MessageList, MessageBubble,
+│   │   │                     MarkdownContent, CodeBlock, ChatInput
 │   │   ├── pages/            ChatPage
-│   │   ├── hooks/            useChat (state machine), useHealth (status polling)
-│   │   ├── services/         api.js — fetch wrapper, error normalization
+│   │   ├── hooks/            useChat (streaming state machine), useTheme,
+│   │   │                     useDocuments, useHealth
+│   │   ├── services/         api.js — fetch wrapper + SSE stream parser
 │   │   └── App.jsx
 │   ├── vite.config.js        Dev proxy: /api → localhost:8000
 │   └── .env.example
@@ -128,7 +132,11 @@ cd ..\backend
 | Method | Path | Description |
 | --- | --- | --- |
 | `GET` | `/api/health` | Liveness probe — `{"status":"healthy","service":"nova"}` |
-| `POST` | `/api/chat` | Send a message (memory + preprocess + intent + entities + RAG) |
+| `POST` | `/api/chat` | Send a message (memory + preprocess + intent + entities + RAG + agent) |
+| `POST` | `/api/chat/stream` | Same pipeline, reply streamed as SSE (`delta` → `meta` → `end`) |
+| `GET` | `/api/conversations` | Sidebar list — id, message count, preview, recency |
+| `GET` | `/api/conversations/{id}/messages` | Full history of one conversation (404 if unknown) |
+| `GET` | `/api/status` | Runtime snapshot — LLM provider, RAG mode, memory backend |
 | `POST` | `/api/documents/upload` | Upload PDF/txt/md — extract, chunk, embed, store |
 | `GET` | `/api/documents` | List uploaded documents |
 | `DELETE` | `/api/documents/{id}` | Remove a document and its chunks |
@@ -195,7 +203,7 @@ refusal (RAG: `docs/07_rag.md`).
 | **7** | RAG: upload documents, grounded answers with citations | ✅ Done |
 | **8** | LLM integration via `LLMProvider` abstraction | ✅ Done |
 | **9** | Tool calling + agent architecture (ReAct loop) | ✅ Done |
-| 10 | Production-grade frontend polish (streaming, markdown, themes) | ⬜ Next |
+| **10** | Production frontend: streaming, markdown, sidebar, dark/light | ✅ Done |
 
 Details: [docs/ROADMAP.md](docs/ROADMAP.md)
 

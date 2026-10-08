@@ -175,4 +175,4 @@ integration including deterministic bypass and template fallback.
 
 ---
 
-*Previous: [08_llm_integration.md](08_llm_integration.md) · Next: frontend production pass (Phase 10)*
+*Previous: [08_llm_integration.md](08_llm_integration.md) · Next: [10_frontend.md](10_frontend.md)*

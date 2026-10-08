@@ -30,6 +30,16 @@ class MemoryMessage:
     confidence: float | None = None
 
 
+@dataclass(frozen=True)
+class ConversationSummary:
+    """Sidebar-shaped overview of one conversation (Phase 10)."""
+
+    session_id: str
+    message_count: int
+    preview: str          # last message content, untrimmed
+    updated_at: datetime
+
+
 class MemoryStore(ABC):
     """Operations the chat pipeline needs. All are synchronous and cheap."""
 
@@ -55,6 +65,10 @@ class MemoryStore(ABC):
     @abstractmethod
     def recent_messages(self, session_id: str, limit: int = 12) -> list[MemoryMessage]:
         """Newest ``limit`` messages, oldest-first order (a context window)."""
+
+    @abstractmethod
+    def list_conversations(self) -> list[ConversationSummary]:
+        """All conversations with messages, most recently updated first."""
 
 
 def new_session_id() -> str:
@@ -100,3 +114,17 @@ class InMemoryStore(MemoryStore):
         if limit <= 0:
             return []
         return self._messages.get(session_id, [])[-limit:]
+
+    def list_conversations(self) -> list[ConversationSummary]:
+        summaries = [
+            ConversationSummary(
+                session_id=session_id,
+                message_count=len(messages),
+                preview=messages[-1].content,
+                updated_at=messages[-1].created_at,
+            )
+            for session_id, messages in self._messages.items()
+            if messages
+        ]
+        summaries.sort(key=lambda summary: summary.updated_at, reverse=True)
+        return summaries

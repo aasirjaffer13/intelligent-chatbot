@@ -99,6 +99,13 @@ class Settings(BaseSettings):
         le=20,
         description="Max LLM/tool rounds per turn before the loop bails out.",
     )
+    # --- Phase 10: streaming ---
+    stream_delay_ms: int = Field(
+        default=15,
+        ge=0,
+        le=200,
+        description="Delay between streamed reply chunks (0 = stream as fast as possible).",
+    )
     # Secrets: standard env names first, NOVA_-prefixed alternates second.
     # Never defaulted in .env.example, never logged, never repr'd.
     openai_api_key: SecretStr | None = Field(

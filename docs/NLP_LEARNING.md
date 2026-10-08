@@ -129,6 +129,7 @@ Predict the output first, then run it — disagreement is where learning happens
 | 7 | `docs/07_rag.md` + notebook `07_rag.ipynb` |
 | 8 | `docs/08_llm_integration.md` (no notebook) |
 | 9 | `docs/09_agents.md` (tool calling, ReAct loop) |
+| 10 | `docs/10_frontend.md` (SSE streaming, markdown, theming) |
 
-*(Docs and notebooks are numbered by phase; the Phase 8–9 row is the
-original plan and will be reshaped as those phases land.)*
+*(Docs and notebooks are numbered by phase — all ten phases are now
+documented.)*

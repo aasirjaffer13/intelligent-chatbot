@@ -18,6 +18,43 @@ body {
   @apply bg-slate-950 text-slate-100 antialiased;
 }
 
+/* --- Phase 10: light theme ---
+   Tailwind v4 utilities compile to `var(--color-*)`, so redefining the
+   palette under :root.light re-themes EVERY existing utility class —
+   no component needs light-specific variants. The ramp is mirrored:
+   950 (app bg in dark) becomes the lightest paper, 100 (headings in
+   dark) becomes the darkest ink, and accents are pinned to darker
+   steps that keep contrast on white. */
+:root.light {
+  --color-slate-50: #020617;
+  --color-slate-100: #0f172a;
+  --color-slate-200: #1e293b;
+  --color-slate-300: #334155;
+  --color-slate-400: #475569;
+  --color-slate-500: #64748b;
+  --color-slate-600: #94a3b8;
+  --color-slate-700: #cbd5e1;
+  --color-slate-800: #e2e8f0;
+  --color-slate-900: #f1f5f9;
+  --color-slate-950: #f8fafc;
+
+  --color-indigo-300: #4338ca;
+  --color-indigo-400: #4f46e5;
+  --color-indigo-950: #c7d2fe;
+
+  --color-rose-200: #9f1239;
+  --color-rose-300: #be123c;
+  --color-rose-400: #e11d48;
+  --color-rose-900: #ffe4e6;
+  --color-rose-950: #fff1f2;
+
+  --color-emerald-300: #047857;
+  --color-emerald-400: #059669;
+
+  --color-amber-300: #b45309;
+  --color-amber-400: #d97706;
+}
+
 /* --- message entrance --- */
 @keyframes nova-fade-up {
   from {
@@ -77,4 +114,13 @@ body {
 
 .scroll-slim::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* light theme needs a lighter scrollbar thumb */
+:root.light .scroll-slim {
+  scrollbar-color: rgb(203 213 225 / 0.9) transparent;
+}
+
+:root.light .scroll-slim::-webkit-scrollbar-thumb {
+  background-color: rgb(203 213 225 / 0.9);
 }

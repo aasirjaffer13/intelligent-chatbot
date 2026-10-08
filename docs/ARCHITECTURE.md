@@ -1,7 +1,7 @@
 # NOVA — Architecture
 
-This document explains how the system is layered today (Phase 1) and exactly
-where each future phase plugs in — without rewriting what already works.
+This document explains how the system is layered **today (Phases 1–10
+complete)** — the original Phase 1 plan grew in place, never by rewrite.
 
 ---
 
@@ -12,19 +12,23 @@ where each future phase plugs in — without rewriting what already works.
 │  Frontend (React + Vite + Tailwind)                         │
 │  components (presentational) ← hooks (state) ← services/api │
 └──────────────────────────┬──────────────────────────────────┘
-                           │  HTTP/JSON  (dev: Vite proxy /api → :8000)
+                           │  HTTP/JSON + SSE streams
+                           │  (dev: Vite proxy /api → :8000)
 ┌──────────────────────────▼──────────────────────────────────┐
 │  API layer — app/api/                                       │
 │  routes/ parse requests, call services, return schemas      │
 ├─────────────────────────────────────────────────────────────┤
-│  Services — app/services/          [Phase 2+]               │
+│  Services — app/services/                                  │
 │  orchestration: preprocess → intent → entities → respond    │
 ├─────────────────────────────────────────────────────────────┤
-│  NLP — app/nlp/                   [Phase 2+]                │
+│  NLP — app/nlp/                                             │
 │  preprocessing · tokenizer · intent · entities · similarity │
 ├──────────────┬───────────────┬──────────────┬───────────────┤
 │ memory/      │ rag/          │ models/      │ llm/          │
 │ [Phase 6]    │ [Phase 7]     │ [Phase 6]    │ [Phase 8]     │
+├──────────────┼───────────────┼──────────────┼───────────────┤
+│ tools/       │ agent/        │              │               │
+│ [Phase 9]    │ [Phase 9]     │              │               │
 ├──────────────┴───────────────┴──────────────┴───────────────┤
 │  Core — app/core/  (logging, typed exceptions)              │
 │  Schemas — app/schemas/ (Pydantic: the public contract)     │
@@ -113,20 +117,30 @@ The same pattern applies to:
 
 ```
 ChatPage (composition root)
-├── ChatHeader      — logo, phase badge, health pill (useHealth), clear button
-├── MessageList     — scroll area, empty state, suggestions, auto-scroll
-│   ├── MessageBubble — user (right, indigo) vs NOVA (left, slate)
-│   └── TypingIndicator
-├── ErrorBanner     — dismissible, fed by useChat().error
-└── ChatInput       — auto-resizing textarea, Enter to send
+├── Sidebar           — new chat, conversation list (replay), document
+│                       upload/delete, mobile overlay (useDocuments)
+├── ChatHeader        — menu, logo, runtime pill (GET /api/status),
+│                       health pill (useHealth), theme toggle, new chat
+├── MessageList       — scroll area, empty state, history spinner, auto-scroll
+│   └── MessageBubble — user (right, indigo) vs NOVA (left, slate)
+│       ├── MarkdownContent  — react-markdown + GFM (tables, lists, quotes)
+│       │   └── CodeBlock    — fenced code with Copy button
+│       └── source chips     — file · chunk · score (RAG citations)
+├── error banner      — dismissible, fed by useChat().error
+└── ChatInput         — auto-resizing textarea, Enter to send
 
-hooks/useChat.js    — single state machine for messages/sending/error
-hooks/useHealth.js  — polls GET /api/health every 30s
-services/api.js     — fetch wrapper; normalizes backend errors to ApiError
+hooks/useChat.js      — state machine + SSE streaming (delta → meta swap)
+hooks/useTheme.js     — dark/light, one `light` class on <html>
+hooks/useDocuments.js — upload/delete document state
+hooks/useHealth.js    — polls GET /api/health every 30s
+services/api.js       — fetch wrapper, error normalization,
+                        streamChat() SSE parser (fetch + ReadableStream)
+index.css             — palette vars; :root.light mirrors the ramp so
+                        every Tailwind class re-themes with one class
 ```
 
-Components never call `fetch` directly. When the API grows (documents,
-streaming), only `services/api.js` and `useChat` change.
+Components never call `fetch` directly. When the API grows, only
+`services/api.js` and the hooks change.
 
 **Why the Vite proxy?** In dev, the browser calls `localhost:5173/api/...`,
 Vite forwards to `localhost:8000`. Same-origin → zero CORS configuration.
@@ -161,6 +175,7 @@ In production, set `VITE_API_BASE_URL` (or serve both from one origin).
 | Training evaluation | training script metrics | accuracy/P/R/F1/confusion matrix (Phase 3) |
 | LLM providers | pytest + `httpx.MockTransport` | auth, payloads, error paths, template fallback (Phase 8) |
 | Agent loop | pytest + scripted provider | tool execution, observations, step rail (Phase 9) |
+| Streaming + browsing | pytest + `client.stream` | SSE delta reassembly = contract, conversations round trip, status shape (Phase 10) |
 
 Tests run without a database, network or model downloads — they must always be
 fast and offline.

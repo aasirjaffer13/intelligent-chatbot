@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
-import { Sparkles } from 'lucide-react'
+import { Loader2, Sparkles } from 'lucide-react'
 import MessageBubble from './MessageBubble.jsx'
-import TypingIndicator from './TypingIndicator.jsx'
 
 const SUGGESTIONS = [
   'Hello, how are you?',
@@ -36,12 +35,30 @@ function EmptyState({ onSuggest }) {
   )
 }
 
-export default function MessageList({ messages, isSending, onSuggest }) {
+function HistoryLoading() {
+  return (
+    <div className="flex h-full items-center justify-center gap-2 text-sm text-slate-400">
+      <Loader2 className="h-4 w-4 animate-spin text-indigo-400" aria-hidden="true" />
+      Loading conversation…
+    </div>
+  )
+}
+
+export default function MessageList({
+  messages,
+  isSending,
+  isLoadingHistory,
+  onSuggest,
+}) {
   const bottomRef = useRef(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [messages, isSending])
+
+  if (isLoadingHistory) {
+    return <HistoryLoading />
+  }
 
   if (messages.length === 0 && !isSending) {
     return <EmptyState onSuggest={onSuggest} />
@@ -52,7 +69,6 @@ export default function MessageList({ messages, isSending, onSuggest }) {
       {messages.map((message) => (
         <MessageBubble key={message.id} message={message} />
       ))}
-      {isSending && <TypingIndicator />}
       <div ref={bottomRef} />
     </div>
   )

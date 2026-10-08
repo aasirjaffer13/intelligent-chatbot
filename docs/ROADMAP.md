@@ -169,11 +169,29 @@ priority).
 tool→observation→final round trip, unknown/crashing tools, max-steps
 rail, deterministic bypass, template fallback on provider failure).
 
-## Phase 10 — Frontend production pass
-- [ ] Streaming responses, markdown + code blocks with copy buttons
-- [ ] Sidebar with conversation list, new-conversation button
-- [ ] Dark/light mode toggle, full loading/error/empty states
-- [ ] RAG source citations + document upload UI, model/status indicator
+## Phase 10 — Frontend production pass ✅
+- [x] Streaming responses (`POST /api/chat/stream`, SSE `delta`/`meta`/`end`
+      events; browser parses the stream over fetch and repaints the
+      assistant bubble chunk by chunk)
+- [x] Markdown + fenced code blocks with copy buttons (react-markdown +
+      remark-gfm, hand-styled so it follows the theme)
+- [x] Sidebar with conversation list, new-conversation button, and
+      conversation replay (`GET /api/conversations` + `…/{id}/messages`)
+- [x] Dark/light mode toggle (one `light` class on `<html>` re-themes the
+      whole app: Tailwind v4 utilities compile to `var(--color-*)`, so
+      `index.css` mirrors the palette under `:root.light`)
+- [x] Loading/error/empty states (history spinner, stream cursor,
+      sidebar skeletons, offline badge, dismissible error banner)
+- [x] RAG source citation chips (file · chunk · score) + document
+      upload/delete UI in the sidebar
+- [x] Model/status indicator (`GET /api/status`: LLM provider/model,
+      RAG mode + doc count, memory backend, agent step budget)
+
+**Exit criteria met:** 257 tests passing (8 new: SSE contract with exact
+delta reassembly, RAG sources over the stream, conversations list/history
+round trip + 404 envelope, status shape without secret leakage); frontend
+production build clean; live smoke test of all four endpoints against
+uvicorn + PostgreSQL.
 
 ---
 

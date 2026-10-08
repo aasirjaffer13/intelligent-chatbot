@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 
 from app.memory.base import (
+    ConversationSummary,
     InMemoryStore,
     MemoryMessage,
     MemoryStore,
@@ -29,6 +30,7 @@ from app.memory.context import (
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "ConversationSummary",
     "InMemoryStore",
     "MemoryContext",
     "MemoryMessage",

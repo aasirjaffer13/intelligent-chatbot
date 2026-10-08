@@ -33,7 +33,13 @@ from sqlalchemy.orm import (
     sessionmaker,
 )
 
-from app.memory.base import MemoryMessage, MemoryStore, new_session_id, utcnow
+from app.memory.base import (
+    ConversationSummary,
+    MemoryMessage,
+    MemoryStore,
+    new_session_id,
+    utcnow,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -142,3 +148,23 @@ class SqlAlchemyMemoryStore(MemoryStore):
                 )
                 for row in rows
             ]
+
+    def list_conversations(self) -> list[ConversationSummary]:
+        with self._session_factory() as session:
+            rows = session.scalars(
+                select(ConversationRow).order_by(ConversationRow.updated_at.desc())
+            ).all()
+            summaries = []
+            for row in rows:
+                messages = row.messages
+                if not messages:
+                    continue
+                summaries.append(
+                    ConversationSummary(
+                        session_id=row.session_id,
+                        message_count=len(messages),
+                        preview=messages[-1].content,
+                        updated_at=row.updated_at or messages[-1].created_at,
+                    )
+                )
+            return summaries
